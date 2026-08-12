@@ -1,175 +1,309 @@
-# Wheeled AMR | ROS 2 Jazzy | Raspberry Pi 5
+# Obstacle-Avoiding Robot
 
-## Overview
+A rear-wheel-drive autonomous robot with front-wheel steering, three ultrasonic distance sensors, and Raspberry Pi computer vision. The Raspberry Pi uses a camera and OpenCV to detect obstacles/colours and sends high-level commands such as `dodgeRight()` and `dodgeLeft()` to an ESP32 over serial/UART. The ESP32 handles ultrasonic sensing, steering, and motor control.
 
-This repository contains a ROS 2 Jazzy workspace for a wheeled differential-drive AMR running on a Raspberry Pi 5 with Ubuntu Server 24.04 ARM64. The robot uses an Arduino Mega 2560 for low-level motor and encoder handling, an RPLiDAR A1 for 2D scanning, a BNO055 IMU, Nav2 for autonomous navigation, SLAM Toolbox for mapping, and robot_localization EKF for wheel odometry plus IMU fusion.
-
-The project is structured for learning and development, but the files are written to be usable on real hardware with persistent USB names, systemd startup, and standard ROS 2 launch/config conventions.
-
-This stack is also prepared for future Acceleration Robotics deployment work, Modbus TCP/IP readiness, and higher-level dashboard/autonomy integrations.
-
-## Hardware BOM
-
-- Raspberry Pi 5, Ubuntu Server 24.04 ARM64, hostname `amrbot`
-- Arduino Mega 2560 over USB, CH340 adapter, persistent symlink `/dev/mega`
-- L298N dual H-bridge motor driver
-- Two DC drive motors with quadrature encoders
-- RPLiDAR A1 over USB, CP2102 adapter, persistent symlink `/dev/lidar`
-- BNO055 IMU over I2C
-- ST7789 SPI TFT, 320x240 landscape, with rotary encoder UI
-- SHANWAN gamepad through ROS 2 `joy` and `teleop_twist_joy`
-
-## System Architecture
+## 1. System Architecture
 
 ```text
-                         Mac / Operator
-                              |
-                              | SSH / ROS tools / future web dashboard
-                              v
-+---------------------------------------------------------------+
-| Raspberry Pi 5 / Ubuntu 24.04 / ROS 2 Jazzy                   |
-|                                                               |
-|  +-----------------+     +-----------------+                  |
-|  | rplidar_ros     | --> | /scan           |                  |
-|  +-----------------+     +-----------------+                  |
-|                                                               |
-|  +-----------------+     +-----------------+                  |
-|  | bno055          | --> | /bno055/imu     |                  |
-|  +-----------------+     +-----------------+                  |
-|                                                               |
-|  +-----------------+     +-----------------+                  |
-|  | amr_bridge      | --> | /odom + TF      |                  |
-|  | /cmd_vel -> USB | <-- | Nav2 / teleop   |                  |
-|  +-----------------+     +-----------------+                  |
-|                                                               |
-|  +-----------------+     +-----------------+                  |
-|  | robot_localiz.  | --> | /odometry/filtered                 |
-|  +-----------------+     +-----------------+                  |
-|                                                               |
-|  +-----------------+     +-----------------+                  |
-|  | slam_toolbox    | --> | /map            |                  |
-|  +-----------------+     +-----------------+                  |
-|                                                               |
-|  +-----------------+     +-----------------+                  |
-|  | Nav2            | --> | /cmd_vel        |                  |
-|  +-----------------+     +-----------------+                  |
-+------------------------------|--------------------------------+
-                               |
-                               | USB serial /dev/mega
-                               v
-+---------------------------------------------------------------+
-| Arduino Mega 2560                                              |
-|  Serial command: L<pwm>R<pwm>                                  |
-|  Telemetry:       L<ticks>R<ticks>                             |
-|  L298N motor PWM + direction                                   |
-|  Encoder tick counting                                         |
-+---------------------------------------------------------------+
+                 ┌──────────────────────┐
+                 │     RASPBERRY PI     │
+                 │                      │
+                 │ Camera + OpenCV      │
+                 │ Obstacle/colour      │
+                 │ decision making      │
+                 └──────────┬───────────┘
+                            │
+                       Serial / UART
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │        ESP32         │
+                 │                      │
+                 │ Ultrasonic sensing   │
+                 │ Servo steering       │
+                 │ Motor control        │
+                 └───────┬───────┬──────┘
+                         │       │
+              ┌──────────┘       └───────────┐
+              ▼                              ▼
+       ┌─────────────┐                ┌─────────────┐
+       │ Servo motor │                │ Motor driver│
+       │ Front steer │                │             │
+       └─────────────┘                └──────┬──────┘
+                                            │
+                                            ▼
+                                       Rear BO motor
+                                       + rear wheels
 ```
 
-## Installation
+The Raspberry Pi performs high-level visual processing. The ESP32 is responsible for real-time interaction with the physical hardware.
 
-Install ROS 2 Jazzy and the required packages on the Pi:
+## 2. Main Hardware
 
-```bash
-sudo apt update
-sudo apt install -y \
-  ros-jazzy-rplidar-ros \
-  ros-jazzy-slam-toolbox \
-  ros-jazzy-nav2-bringup \
-  ros-jazzy-navigation2 \
-  ros-jazzy-robot-localization \
-  ros-jazzy-robot-state-publisher \
-  ros-jazzy-joint-state-publisher \
-  ros-jazzy-xacro \
-  ros-jazzy-teleop-twist-joy \
-  python3-serial
+- Raspberry Pi
+- Raspberry Pi camera module
+- ESP32 development board
+- 3 × HC-SR04 ultrasonic sensors
+- Servo motor for front-wheel steering
+- BO motor
+- Compatible single-channel motor driver with IN1, IN2 and ENA/PWM inputs
+- 9 V battery/supply
+- 9 V → 5 V buck converter
+- Front steering mechanism and chassis
+- Rear wheels connected to the BO motor
+- Resistors for ultrasonic ECHO voltage dividers: 1 kΩ and 2 kΩ for each sensor
+- Jumper wires and suitable power wiring
+
+## 3. ESP32 Pin Connections
+
+| Component | Connection | ESP32 pin |
+|---|---|---|
+| Front ultrasonic TRIG | TRIG | GPIO 13 |
+| Front ultrasonic ECHO | ECHO | GPIO 34 |
+| Left ultrasonic TRIG | TRIG | GPIO 14 |
+| Left ultrasonic ECHO | ECHO | GPIO 35 |
+| Right ultrasonic TRIG | TRIG | GPIO 25 |
+| Right ultrasonic ECHO | ECHO | GPIO 32 |
+| Motor driver IN1 | Motor control | GPIO 18 |
+| Motor driver IN2 | Motor control | GPIO 19 |
+| Motor driver ENA | PWM/speed | GPIO 15 |
+| Servo signal | PWM | Use a free suitable GPIO |
+| Common ground | GND | ESP32 GND |
+
+GPIO 34 and GPIO 35 are input-only pins, which is appropriate for the ultrasonic ECHO signals.
+
+## 4. Ultrasonic Sensor Wiring
+
+Each HC-SR04 is connected as follows:
+
+```text
+HC-SR04 VCC  → 5 V
+HC-SR04 GND  → GND
+HC-SR04 TRIG → assigned ESP32 GPIO
+HC-SR04 ECHO → voltage divider → assigned ESP32 GPIO
 ```
 
-Create and build the workspace:
+The HC-SR04 ECHO output can be approximately 5 V, while ESP32 GPIO is designed for 3.3 V logic. Do **not** connect a 5 V ECHO signal directly to an ESP32 input.
 
-```bash
-mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
-git clone https://github.com/SH047/AMR_Project-.git
-cd ~/ros2_ws
-source /opt/ros/jazzy/setup.bash
-colcon build
-source install/setup.bash
+Use one voltage divider for every ECHO line:
+
+```text
+HC-SR04 ECHO
+     │
+    1 kΩ
+     │
+     ├────────────→ ESP32 ECHO GPIO
+     │
+    2 kΩ
+     │
+    GND
 ```
 
-Install persistent USB rules:
+This produces approximately 3.3 V from a 5 V ECHO signal.
 
-```bash
-cd ~/ros2_ws/src/AMR_Project-
-chmod +x scripts/setup_udev.sh
-sudo ./scripts/setup_udev.sh
+Make three identical dividers:
+
+- Front ECHO → GPIO 34
+- Left ECHO → GPIO 35
+- Right ECHO → GPIO 32
+
+The sensors should be physically positioned so that one faces forward and the other two face left and right.
+
+```text
+                    FRONT
+                      ↑
+                [FRONT SENSOR]
+
+          [LEFT]                 [RIGHT]
+          SENSOR                  SENSOR
+
+                 ┌─────────┐
+                 │  ROBOT  │
+                 └────┬────┘
+                      │
+                   BO MOTOR
 ```
 
-Reconnect the Arduino Mega and RPLiDAR, then verify:
+## 5. Power System
 
-```bash
-ls -la /dev/mega /dev/lidar
+The 9 V supply powers the motor circuit and is also reduced to 5 V for the servo and ultrasonic sensors.
+
+```text
+                 9 V BATTERY
+                ┌──────┴──────┐
+                │             │
+                ▼             ▼
+          Motor driver    Buck converter
+          motor supply       9 V → 5 V
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+                 Servo VCC        Ultrasonic VCC
 ```
 
-## Bringup Instructions
+The ESP32 may be supplied through its appropriate 5 V/VIN input if the board and regulator specifications permit it. Check the exact ESP32 development board before connecting power.
 
-Run the full stack:
+All grounds must be common:
 
-```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2_ws/install/setup.bash
-ros2 launch amr_bringup bringup.launch.py
+```text
+Battery GND
+   ├── Motor driver GND
+   ├── Buck converter GND
+   ├── ESP32 GND
+   ├── Servo GND
+   └── Ultrasonic GND
 ```
 
-Useful checks:
+A common ground is essential because the ESP32 control signals need the same voltage reference as the devices receiving those signals.
 
-```bash
-ros2 topic list
-ros2 topic echo /odom --once
-ros2 topic echo /scan --once
-ros2 topic echo /odometry/filtered --once
-ros2 run tf2_tools view_frames
+## 6. Servo Wiring
+
+The servo controls the front steering mechanism:
+
+```text
+Buck +5 V   → Servo VCC
+Buck GND    → Servo GND
+ESP32 GPIO  → Servo SIGNAL
 ```
 
-## Nav2 Usage
+Do not power the servo from an ESP32 GPIO. Steering against mechanical resistance can cause the servo to draw significant current, so the 5 V buck converter should supply the servo.
 
-For mapping, drive the robot manually while SLAM Toolbox publishes `/map`. Save the map when complete:
+## 7. Motor Driver Wiring
 
-```bash
-ros2 run nav2_map_server map_saver_cli -f ~/ros2_ws/maps/amr_map
+The ESP32 controls the rear BO motor through the motor driver:
+
+```text
+ESP32 GPIO 18 ─────→ Motor driver IN1
+ESP32 GPIO 19 ─────→ Motor driver IN2
+ESP32 GPIO 15 ─────→ Motor driver ENA/PWM
+ESP32 GND ──────────→ Motor driver GND
+
+9 V battery ────────→ Motor driver motor-power input
+
+Motor driver OUT1 ──→ BO motor
+Motor driver OUT2 ──→ BO motor
 ```
 
-For navigation, use RViz2 or a dashboard to send a `NavigateToPose` goal in the `map` frame. Nav2 uses:
+The exact power and output terminals depend on the motor-driver module. Verify its pin labels and voltage/current ratings before connecting the motor.
 
-- NavFn global planner
-- DWB local controller
-- obstacle and inflation costmap layers
-- LiDAR obstacle source from `/scan`
-- differential-drive footprint constraints
+Example ESP32 definitions:
 
-## Teleop Usage
-
-The platform is prepared for SHANWAN gamepad teleoperation through `teleop_twist_joy`. Use L1, button index `6`, as the enable button.
-
-Example:
-
-```bash
-ros2 run joy joy_node
-ros2 run teleop_twist_joy teleop_node --ros-args \
-  -p enable_button:=6 \
-  -p axis_linear.x:=1 \
-  -p axis_angular.yaw:=0
+```cpp
+#define MOTOR_PIN_1 18
+#define MOTOR_PIN_2 19
+#define ENA 15
 ```
 
-## Known Issues
+## 8. Raspberry Pi and Camera
 
-- The Arduino firmware in this repository follows the requested pin map. If your physical Mega wiring still uses an older pin map, update the firmware constants before uploading.
-- `bno055` package launch details vary by driver. The bringup launch assumes an installed `bno055` package can publish `/bno055/imu`.
-- RPLiDAR A1 scan quality depends heavily on stable 5V power.
-- L298N voltage drop is significant. Tune max velocities and acceleration conservatively.
-- The ST7789 TFT UI is hardware-specific and should be kept separate from safety-critical motion control.
+Connect the camera module to the Raspberry Pi using the appropriate camera connector and configure the Raspberry Pi camera software for the installed operating system.
 
-## License
+The software flow is:
 
-MIT License. See package manifests for package-level license declarations.
+```text
+Camera
+   ↓
+Image capture
+   ↓
+OpenCV processing
+   ↓
+Obstacle/colour detection
+   ↓
+High-level decision
+   ↓
+"dodgeRight()" / "dodgeLeft()"
+   ↓
+UART/Serial
+   ↓
+ESP32
+```
 
+OpenCV can be used for image preprocessing, colour detection, contour/object detection, and other required vision operations. The exact OpenCV algorithm depends on the type of obstacle or colour that must be detected.
+
+## 9. Raspberry Pi–ESP32 Communication
+
+A serial/UART connection is used to transfer commands from the Raspberry Pi to the ESP32.
+
+A simple command protocol can be used, for example:
+
+```text
+RIGHT
+LEFT
+FORWARD
+STOP
+```
+
+The Raspberry Pi sends the command after processing the camera image. The ESP32 receives the command and calls the corresponding control routine.
+
+If physical UART pins are used, connect TX of the transmitting device to RX of the receiving device and RX to TX, with a common ground. Confirm the voltage levels and UART configuration of the specific Raspberry Pi and ESP32 setup before wiring.
+
+## 10. Obstacle-Avoidance Logic
+
+The three ultrasonic sensors provide spatial information around the robot.
+
+For example:
+
+```text
+Left   = 15 cm
+Front  = 20 cm
+Right  = 80 cm
+```
+
+The right side has substantially more free space, so the robot can select a right-hand avoidance manoeuvre.
+
+Another example:
+
+```text
+Left   = 80 cm
+Front  = 20 cm
+Right  = 15 cm
+```
+
+The left side has more clearance, so the robot can select a left-hand manoeuvre.
+
+If an obstacle is directly ahead:
+
+```text
+Left   = 60 cm
+Front  = 15 cm
+Right  = 55 cm
+```
+
+the obstacle is primarily in the forward path, and the left/right distances can be compared to select the clearer direction.
+
+A single ultrasonic sensor would only provide information about the distance in one direction. Three sensors allow the ESP32 to compare available clearance on both sides and make a more useful steering decision.
+
+## 11. Control Responsibilities
+
+The Raspberry Pi and ESP32 have separate responsibilities.
+
+**Raspberry Pi**
+- Captures camera images
+- Runs OpenCV
+- Detects obstacles/colours
+- Makes high-level vision decisions
+- Sends avoidance commands
+
+**ESP32**
+- Reads the three ultrasonic sensors
+- Determines local obstacle clearance
+- Controls the motor driver
+- Controls the steering servo
+- Executes commands received from the Raspberry Pi
+
+This separation keeps computationally intensive vision processing on the Raspberry Pi while keeping time-sensitive hardware control on the ESP32.
+
+## 12. Why This Architecture Works
+
+The robot combines camera-based vision with direct distance measurement. The camera provides visual information that ultrasonic sensors cannot provide, while ultrasonic sensors provide direct proximity information that does not depend on image interpretation.
+
+Front-wheel steering separates steering from propulsion:
+
+```text
+Servo → front-wheel steering
+BO motor → rear-wheel propulsion
+```
+
+This makes the physical control system straightforward: the ESP32 changes the servo angle to steer while the motor driver controls the rear BO motor.
+
+Before powering the complete system, verify polarity, common ground, regulator output voltage, motor-driver ratings, servo current requirements, and the 3.3 V limitation of ESP32 GPIO inputs. Test the motor, servo, and each ultrasonic sensor separately before running the complete obstacle-avoidance program.
