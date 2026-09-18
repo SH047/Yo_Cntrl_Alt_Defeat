@@ -6,6 +6,25 @@ This document records the proposed Version 2 of the YO_ERROR-404 Future Engineer
 
 Version 2 keeps the useful principle of the existing robot: a Raspberry Pi performs high-level vision while an ESP32 handles time-critical sensing and actuation. V2 changes the mechanical platform and makes the power, sensing and test process more deliberate.
 
+| Journal section | Evidence to add before final submission |
+| --- | --- |
+| Robot views | Front-left, top, right-side, wiring and underside photographs |
+| Mechanical design | Chosen STL revision, material, print settings and dry-fit record |
+| Electrical design | Wiring diagram, power measurements and current test record |
+| Software design | Command protocol, calibration file and tested source revision |
+| Validation | Dated run log with failures, corrections and repeat results |
+
+## Image evidence
+
+> **Image reserved - V2 complete robot**<br>
+> Add the final front-left photograph at `media/images/v2/robot-front-left.jpg`.
+
+> **Image reserved - V2 labelled top view**<br>
+> Add the component-layout photograph at `media/images/v2/robot-top.jpg`.
+
+> **Image reserved - V2 power and wiring view**<br>
+> Add the electrical-layout photograph at `media/images/v2/robot-wiring.jpg`.
+
 ## Why move from V1 to V2
 
 The existing repository describes a compact prototype using a BO motor, HC-SR04 ultrasonic sensors, a 9 V supply and a basic front-steering chassis. That platform is useful for early software work, but it limits repeatability on a WRO field.
@@ -30,15 +49,38 @@ V2 is intended to solve the following problems:
 
 ## System architecture
 
-```text
-Pi camera -> Raspberry Pi -> USB/UART serial -> ESP32-C3
-                                              |-- IMU
-                                              |-- TCA9548A -> 4 x ToF sensors
-                                              |-- steering servo
-                                              '-- motor driver -> 12 V geared motor + encoder
+```mermaid
+flowchart LR
+    Camera[Pi camera] --> Pi[Raspberry Pi\nVision and mission logic]
+    Pi <-->|Serial heartbeat and commands| ESP[ESP32-C3\nReal-time control]
+    ESP --> IMU[IMU]
+    ESP --> Mux[TCA9548A I2C multiplexer]
+    Mux --> ToF[Four ToF sensor channels]
+    ESP --> Servo[Steering servo]
+    ESP --> Driver[Motor driver]
+    Driver --> Motor[12 V geared motor]
+    Motor --> Encoder[Quadrature encoder]
+    Encoder --> ESP
 ```
 
 The Raspberry Pi owns image capture, colour/obstacle interpretation and the high-level state machine. The ESP32-C3 owns sensor polling, encoder counting, PWM output, safe-stop behaviour and serial telemetry. The two controllers must share a documented command protocol and a common electrical ground.
+
+## Control-loop flow
+
+```mermaid
+flowchart TD
+    Start[Power on] --> Health[Check sensor health, serial link and battery]
+    Health -->|Fault| Stop[Stop motor and report fault]
+    Health -->|Ready| Wait[Wait for start command]
+    Wait --> Read[Read vision, ToF, IMU and encoder]
+    Read --> Plan[Select mission state and target path]
+    Plan --> Control[Compute steering and motor command]
+    Control --> Execute[ESP32 applies outputs]
+    Execute --> Telemetry[Log telemetry and run state]
+    Telemetry --> Finished{Mission complete?}
+    Finished -->|No| Read
+    Finished -->|Yes| Stop
+```
 
 ## Mechanical design
 

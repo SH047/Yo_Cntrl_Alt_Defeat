@@ -1,22 +1,147 @@
-# YO_ERROR-404 WRO Future Engineers V2
+# WRO 2026 Future Engineers
 
-This repository records the Version 2 development of the YO_ERROR-404 Future Engineers robot. V2 upgrades the V1 prototype toward a rigid differential drivetrain, encoder feedback, ToF-based distance sensing and a clearer Raspberry Pi plus ESP32 control split.
+## Team YO_ERROR-404 - Version 2
 
-Read the [V2 engineering journal](docs/V2_ENGINEERING_JOURNAL.md) for the V2 rationale, architecture, advantages, learnings and validation plan.
+This repository documents Version 2 of the YO_ERROR-404 autonomous vehicle for WRO Future Engineers. V2 develops the earlier prototype into a serviceable differential-drive platform with encoder feedback, short-range ToF sensing, a Raspberry Pi vision system and an ESP32-C3 real-time controller.
 
-The V2 STL fabrication library is in [`hardware/STL_V2/`](hardware/STL_V2/). It contains STL files only. CAD source formats and bot images were deliberately excluded from this release.
+> **Image reserved - V2 robot, front-left view**<br>
+> Add `media/images/v2/robot-front-left.jpg` after final assembly.
 
-## Existing software
+| Area | V2 direction | Current evidence required |
+| --- | --- | --- |
+| Mobility | Rear differential with front parallel steering | Roll, steering-sweep and coupling test |
+| Feedback | Encoder, IMU and four ToF channels | Saved calibration values and bench logs |
+| Compute | Raspberry Pi vision + ESP32-C3 real-time control | Stable serial heartbeat and safe stop |
+| Fabrication | STL-only release for printed parts | Chosen STL revision and physical dry-fit |
 
-The current `src/` folder is retained as a working software snapshot from the earlier robot. Before field use with V2, confirm every pin assignment, power rating, serial command and calibration value against the assembled hardware.
+## Documentation
 
-## Repository safety
+| Resource | Purpose |
+| --- | --- |
+| [V2 engineering journal](docs/V2_ENGINEERING_JOURNAL.md) | Design rationale, V1-to-V2 change log, risks and validation plan |
+| [V2 STL library](hardware/STL_V2/) | 31 supplied STL files and fabrication notes |
+| [Image placeholders](media/images/v2/README.md) | Required robot photographs for the final journal |
+| [`src/`](src/) | Existing ESP32 and Raspberry Pi software snapshot |
 
-Do not commit access tokens, Wi-Fi passwords, or other credentials. Use ignored local configuration files with a committed placeholder example instead.
+## V2 system architecture
 
----
+```mermaid
+flowchart LR
+    Camera[Pi camera] --> Pi[Raspberry Pi\nVision and mission state]
+    Pi <-->|Serial heartbeat and commands| ESP[ESP32-C3\nReal-time controller]
+    ESP --> IMU[IMU\nHeading]
+    ESP --> Mux[TCA9548A\nI2C multiplexer]
+    Mux --> ToF1[Front ToF]
+    Mux --> ToF2[Left ToF]
+    Mux --> ToF3[Right ToF]
+    Mux --> ToF4[Rear ToF]
+    ESP --> Servo[Steering servo]
+    ESP --> Driver[Motor driver]
+    Driver --> Motor[12 V geared motor\nQuadrature encoder]
+    Motor --> ESP
+```
 
-# V1 reference: Obstacle-Avoiding Robot
+The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 reads feedback, drives the steering and motor outputs, reports telemetry and stops propulsion when a safety condition occurs.
+
+## Why V2
+
+| V1 prototype | V2 development | Engineering reason |
+| --- | --- | --- |
+| BO motor and light drivetrain | Geared motor with encoder and differential | Improve repeatability of speed and distance control |
+| HC-SR04 ultrasonic sensors | Four ToF sensors through a TCA9548A | Reduce wide-cone distance ambiguity |
+| General 9 V power path | Separate motor, servo, logic and sensor power domains | Reduce noise and controller-reset risk |
+| Time-based driving corrections | Encoder, IMU and ToF feedback | Measure error before correcting it |
+| Prototype chassis | Polycarbonate chassis with PETG mounts | Improve alignment and serviceability |
+
+## Image record
+
+> **Image reserved - V2 top view**<br>
+> Add `media/images/v2/robot-top.jpg` with the major components labelled.
+
+> **Image reserved - V2 right-side view**<br>
+> Add `media/images/v2/robot-right.jpg` showing the motor, differential and side sensor placement.
+
+> **Image reserved - V2 wiring view**<br>
+> Add `media/images/v2/robot-wiring.jpg` showing battery, fuse, regulators and the common-ground point.
+
+## Electrical power flow
+
+```mermaid
+flowchart TD
+    Battery[12 V battery] --> Fuse[Main fuse and power switch]
+    Fuse --> MotorRail[Motor rail]
+    Fuse --> ServoReg[Servo regulator]
+    Fuse --> LogicReg[5 V logic regulator]
+    LogicReg --> Pi[Raspberry Pi]
+    LogicReg --> ESP[ESP32-C3]
+    ESP --> SensorRail[3.3 V sensor rail]
+    SensorRail --> Mux[TCA9548A]
+    SensorRail --> IMU[IMU]
+    SensorRail --> ToF[Four ToF sensors]
+    MotorRail --> Driver[Motor driver]
+    Driver --> Motor[Geared motor]
+    ServoReg --> Servo[Steering servo]
+    Ground[Planned common ground] --- MotorRail
+    Ground --- ServoReg
+    Ground --- LogicReg
+```
+
+Before integration, measure motor current under free-run and loaded conditions, check the logic rail under steering load, and confirm I2C readings remain stable while PWM is active.
+
+## Control flow
+
+```mermaid
+flowchart TD
+    Start[Power on] --> Check[Check battery, serial link and sensor health]
+    Check -->|Fault| Stop[Safe stop and fault report]
+    Check -->|Ready| Wait[Wait for start command]
+    Wait --> Sense[Read camera, ToF, IMU and encoder]
+    Sense --> Decide[Mission state and steering target]
+    Decide --> Actuate[ESP32 sets steering and motor output]
+    Actuate --> Log[Send telemetry and record run data]
+    Log --> Complete{Mission complete?}
+    Complete -->|No| Sense
+    Complete -->|Yes| Stop
+```
+
+## Build and validation flow
+
+```mermaid
+flowchart LR
+    A[Select physical components] --> B[Dry-fit STL parts]
+    B --> C[Mechanical roll and steering tests]
+    C --> D[Power and motor-current tests]
+    D --> E[Sensor and serial bench tests]
+    E --> F[Short straight and turn tests]
+    F --> G[Full-course practice runs]
+    G --> H[Freeze working calibration and backup]
+```
+
+## Repository structure
+
+```text
+docs/                 Engineering journal and V2 rationale
+hardware/STL_V2/      STL-only fabrication library
+media/images/v2/      Reserved locations for final robot photographs
+src/                  Existing ESP32 and Raspberry Pi code snapshot
+```
+
+## Before a field run
+
+1. Confirm the selected STL parts match the actual motor, servo, bearings, differential and sensor boards.
+2. Check that the steering has no mechanical bind and the wheels move freely.
+3. Confirm battery polarity, fuse, common ground and motor-driver current capacity.
+4. Run the sensor health check and verify the serial heartbeat.
+5. Load the saved calibration values and make a backup before changing gains.
+
+## Security and configuration
+
+Keep GitHub tokens, Wi-Fi passwords and event credentials out of tracked files. Use a local ignored configuration file and commit only a placeholder example.
+
+<details>
+<summary>V1 prototype reference</summary>
+
+# Obstacle-Avoiding Robot
 
 A rear-wheel-drive autonomous robot with front-wheel steering, three ultrasonic distance sensors, and Raspberry Pi computer vision. The Raspberry Pi uses a camera and OpenCV to detect obstacles/colours and sends high-level commands such as `dodgeRight()` and `dodgeLeft()` to an ESP32 over serial/UART. The ESP32 handles ultrasonic sensing, steering, and motor control.
 
@@ -325,3 +450,5 @@ BO motor → rear-wheel propulsion
 This makes the physical control system straightforward: the ESP32 changes the servo angle to steer while the motor driver controls the rear BO motor.
 
 Before powering the complete system, verify polarity, common ground, regulator output voltage, motor-driver ratings, servo current requirements, and the 3.3 V limitation of ESP32 GPIO inputs. Test the motor, servo, and each ultrasonic sensor separately before running the complete obstacle-avoidance program.
+
+</details>
