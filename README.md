@@ -7,6 +7,14 @@ This repository documents Version 2 of the YO_ERROR-404 autonomous vehicle for W
 > **Image reserved - V2 robot, front-left view**<br>
 > Add `media/images/v2/robot-front-left.jpg` after final assembly.
 
+## V1 baseline
+
+<p align="center">
+  <img src="media/images/WRO-FE-BOT.jpg" alt="YO_ERROR-404 Version 1 robot" width="760">
+</p>
+
+<p align="center"><em>Version 1 prototype. This image remains as the visual baseline for the V2 design record.</em></p>
+
 | Area | V2 direction | Current evidence required |
 | --- | --- | --- |
 | Mobility | Rear differential with front parallel steering | Roll, steering-sweep and coupling test |
@@ -43,15 +51,25 @@ flowchart LR
 
 The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 reads feedback, drives the steering and motor outputs, reports telemetry and stops propulsion when a safety condition occurs.
 
-## Why V2
+## V1 and V2 comparison
 
-| V1 prototype | V2 development | Engineering reason |
-| --- | --- | --- |
-| BO motor and light drivetrain | Geared motor with encoder and differential | Improve repeatability of speed and distance control |
-| HC-SR04 ultrasonic sensors | Four ToF sensors through a TCA9548A | Reduce wide-cone distance ambiguity |
-| General 9 V power path | Separate motor, servo, logic and sensor power domains | Reduce noise and controller-reset risk |
-| Time-based driving corrections | Encoder, IMU and ToF feedback | Measure error before correcting it |
-| Prototype chassis | Polycarbonate chassis with PETG mounts | Improve alignment and serviceability |
+| Area | V1 prototype | V2 development | V2 advantage to validate |
+| --- | --- | --- | --- |
+| Drivetrain | BO motor and lightweight rear drive | 12 V geared motor, encoder and rear differential | Measured speed and distance feedback with stronger mechanical support |
+| Distance sensing | Three HC-SR04 ultrasonic sensors | Four ToF channels through TCA9548A | Narrower, repeatable short-range wall measurements |
+| Heading and distance control | Time-based corrections with basic IMU feedback | Encoder, IMU and ToF feedback used together | Corrections can use measured error instead of timing alone |
+| Power architecture | General 9 V supply path | Dedicated motor, servo, logic and sensor domains | Better isolation from motor and servo noise |
+| Mechanical platform | Prototype steering chassis | Polycarbonate chassis with PETG mounts and bearing supports | Improved alignment and easier component replacement |
+| Compute split | Raspberry Pi and ESP32 prototype control | Explicit Raspberry Pi mission layer and ESP32 safety/control layer | Cleaner separation of vision work from real-time actuation |
+
+## Advantages of V2
+
+1. The encoder and IMU provide a measurable calibration path for straight runs, turns and speed control.
+2. Four ToF sensor positions can provide front, side and rear distance evidence when their mounts and offsets are validated.
+3. The differential drivetrain and reinforced mounts are designed for better wheel alignment and serviceability.
+4. Dedicated power domains reduce the chance that motor or steering load interrupts the Raspberry Pi or sensor bus.
+5. The V2 journal, STL library and image plan make the build easier to inspect, reproduce and improve between test sessions.
+6. The state-flow diagrams give each team member a shared view of startup, sensing, control, safety stop and validation.
 
 ## Image record
 
