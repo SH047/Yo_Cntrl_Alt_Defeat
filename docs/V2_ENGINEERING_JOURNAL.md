@@ -174,6 +174,7 @@ The serial protocol should include a heartbeat, an explicit STOP command and a d
 ## Release contents
 
 - `hardware/STL_V2/`: STL fabrication library supplied for V2.
+- `hardware/ELECTRONICS_V2/`: component architecture, integration rules and electrical bench-test worksheet.
 - `src/`: existing ESP32 and Raspberry Pi code snapshots. These require pin, protocol and calibration updates before being treated as V2-final firmware.
 - `docs/V2_ENGINEERING_JOURNAL.md`: V2 design basis, risks and validation plan.
 

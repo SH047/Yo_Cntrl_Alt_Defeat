@@ -28,6 +28,7 @@ This repository documents Version 2 of the YO_ERROR-404 autonomous vehicle for W
 | --- | --- |
 | [V2 engineering journal](docs/V2_ENGINEERING_JOURNAL.md) | Design rationale, V1-to-V2 change log, risks and validation plan |
 | [V2 STL library](hardware/STL_V2/) | 31 supplied STL files and fabrication notes |
+| [V2 electronics reference](hardware/ELECTRONICS_V2/) | Component architecture, wiring rules and bench-test worksheet |
 | [Image placeholders](media/images/v2/README.md) | Required robot photographs for the final journal |
 | [`src/`](src/) | Existing ESP32 and Raspberry Pi software snapshot |
 
@@ -139,6 +140,7 @@ flowchart LR
 
 ```text
 docs/                 Engineering journal and V2 rationale
+hardware/ELECTRONICS_V2/  Component reference and electrical validation plan
 hardware/STL_V2/      STL-only fabrication library
 media/images/v2/      Reserved locations for final robot photographs
 src/                  Existing ESP32 and Raspberry Pi code snapshot
