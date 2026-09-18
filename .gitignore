@@ -12,3 +12,20 @@ dist/
 .pio/
 .vscode/
 .idea/
+
+# CAD source files are intentionally excluded from the STL fabrication release.
+*.step
+*.STEP
+*.stp
+*.STP
+*.dxf
+*.DXF
+*.3mf
+*.3MF
+*.f3d
+*.F3D
+
+# Local secrets and generated test artifacts.
+secrets.h
+logs/
+*.avi

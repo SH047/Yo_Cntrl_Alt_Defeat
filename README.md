@@ -1,4 +1,22 @@
-# Obstacle-Avoiding Robot
+# YO_ERROR-404 WRO Future Engineers V2
+
+This repository records the Version 2 development of the YO_ERROR-404 Future Engineers robot. V2 upgrades the V1 prototype toward a rigid differential drivetrain, encoder feedback, ToF-based distance sensing and a clearer Raspberry Pi plus ESP32 control split.
+
+Read the [V2 engineering journal](docs/V2_ENGINEERING_JOURNAL.md) for the V2 rationale, architecture, advantages, learnings and validation plan.
+
+The V2 STL fabrication library is in [`hardware/STL_V2/`](hardware/STL_V2/). It contains STL files only. CAD source formats and bot images were deliberately excluded from this release.
+
+## Existing software
+
+The current `src/` folder is retained as a working software snapshot from the earlier robot. Before field use with V2, confirm every pin assignment, power rating, serial command and calibration value against the assembled hardware.
+
+## Repository safety
+
+Do not commit access tokens, Wi-Fi passwords, or other credentials. Use ignored local configuration files with a committed placeholder example instead.
+
+---
+
+# V1 reference: Obstacle-Avoiding Robot
 
 A rear-wheel-drive autonomous robot with front-wheel steering, three ultrasonic distance sensors, and Raspberry Pi computer vision. The Raspberry Pi uses a camera and OpenCV to detect obstacles/colours and sends high-level commands such as `dodgeRight()` and `dodgeLeft()` to an ESP32 over serial/UART. The ESP32 handles ultrasonic sensing, steering, and motor control.
 
