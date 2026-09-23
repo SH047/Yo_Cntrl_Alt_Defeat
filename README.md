@@ -82,6 +82,9 @@ The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 
 > **V2 right-side view**<br>
  <img src="media/images/v2/robot-right.jpeg" width="760">
 
+> **V2 back**<br>
+<img src="media/images/v2/robot-back.jpeg" width="760">
+
 > **V2 wiring view**<br>
 <img src="media/images/v2/robot-wiring.jpeg" width="760">
 
