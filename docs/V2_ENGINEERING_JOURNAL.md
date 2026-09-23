@@ -17,13 +17,13 @@ Version 2 keeps the useful principle of the existing robot: a Raspberry Pi perfo
 ## Image evidence
 
 > **V2 complete robot**<br>
-<img src="media/images/v2/robot-front-left.jpeg" width="650">
+<img src="media/images/v2/robot-front-left.jpeg">
 
 > **IV2 top view**<br>
-<img src="media/images/v2/robot-top.jpeg" width="650">
+<img src="media/images/v2/robot-top.jpeg" width="760">
 
 > **IV2 power and wiring view**<br>
-<img src="media/images/v2/robot-wiring.jpeg" width="650">
+<img src="media/images/v2/robot-wiring.jpeg">
 
 ## Why move from V1 to V2
 
