@@ -4,9 +4,6 @@
 
 This repository documents Version 2 of the YO_ERROR-404 autonomous vehicle for WRO Future Engineers. V2 develops the earlier prototype into a serviceable differential-drive platform with encoder feedback, short-range ToF sensing, a Raspberry Pi vision system and an ESP32-C3 real-time controller.
 
-> **Image reserved - V2 robot, front-left view**<br>
-> Add `media/images/v2/robot-front-left.jpg` after final assembly.
-
 ## V1 baseline
 
 <p align="center">
