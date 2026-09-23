@@ -73,15 +73,17 @@ The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 
 6. The state-flow diagrams give each team member a shared view of startup, sensing, control, safety stop and validation.
 
 ## Image record
+> **V2 front-left view**<br>
+<img src="media/images/v2/robot-front-left.jpeg">
 
 > **V2 top view**<br>
-<img src="media/images/v2/robot-top.jpg" width="760">
+<img src="media/images/v2/robot-top.jpeg" width="760">
 
 > **V2 right-side view**<br>
- <img src="media/images/v2/robot-right.jpg" width="760">
+ <img src="media/images/v2/robot-right.jpeg" width="760">
 
 > **V2 wiring view**<br>
-<img src="media/images/v2/robot-wiring.jpg" width="760">
+<img src="media/images/v2/robot-wiring.jpeg" width="760">
 
 ## Electrical power flow
 
