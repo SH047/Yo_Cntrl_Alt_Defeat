@@ -74,14 +74,14 @@ The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 
 
 ## Image record
 
-> **Image reserved - V2 top view**<br>
-> Add `media/images/v2/robot-top.jpg` with the major components labelled.
+> **V2 top view**<br>
+<img src="media/images/v2/robot-top.jpg" width="760">
 
-> **Image reserved - V2 right-side view**<br>
-> Add `media/images/v2/robot-right.jpg` showing the motor, differential and side sensor placement.
+> **V2 right-side view**<br>
+ <img src="media/images/v2/robot-right.jpg" width="760">
 
-> **Image reserved - V2 wiring view**<br>
-> Add `media/images/v2/robot-wiring.jpg` showing battery, fuse, regulators and the common-ground point.
+> **V2 wiring view**<br>
+<img src="media/images/v2/robot-wiring.jpg" width="760">
 
 ## Electrical power flow
 
