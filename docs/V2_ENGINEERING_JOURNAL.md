@@ -16,14 +16,14 @@ Version 2 keeps the useful principle of the existing robot: a Raspberry Pi perfo
 
 ## Image evidence
 
-> **Image reserved - V2 complete robot**<br>
-> Add the final front-left photograph at `media/images/v2/robot-front-left.jpg`.
+> **V2 complete robot**<br>
+<img src="media/images/v2/robot-front-left.jpeg" width="650">
 
-> **Image reserved - V2 labelled top view**<br>
-> Add the component-layout photograph at `media/images/v2/robot-top.jpg`.
+> **IV2 top view**<br>
+<img src="media/images/v2/robot-top.jpeg" width="650">
 
-> **Image reserved - V2 power and wiring view**<br>
-> Add the electrical-layout photograph at `media/images/v2/robot-wiring.jpg`.
+> **IV2 power and wiring view**<br>
+<img src="media/images/v2/robot-wiring.jpeg" width="650">
 
 ## Why move from V1 to V2
 
@@ -177,7 +177,3 @@ The serial protocol should include a heartbeat, an explicit STOP command and a d
 - `hardware/ELECTRONICS_V2/`: component architecture, integration rules and electrical bench-test worksheet.
 - `src/`: existing ESP32 and Raspberry Pi code snapshots. These require pin, protocol and calibration updates before being treated as V2-final firmware.
 - `docs/V2_ENGINEERING_JOURNAL.md`: V2 design basis, risks and validation plan.
-
-## Security and repository hygiene
-
-Do not commit GitHub tokens, Wi-Fi passwords, event credentials or personal data. Keep local credentials in an ignored configuration file and commit only an example template with placeholder values. Add generated logs, video captures and large raw datasets only when they are needed for reproducible testing.
