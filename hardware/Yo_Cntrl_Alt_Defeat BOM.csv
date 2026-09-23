@@ -1,0 +1,16 @@
+Item,Component,Description,Quantity
+1,HUSKYLENS AI Camera,"AI machine vision camera sensor for object recognition, face recognition, and tracking",1
+2,ESP32 DevKit V1,Wi-Fi and Bluetooth-enabled microcontroller development board,1
+3,"Time-of-Flight (ToF) Sensor (e.g., VL53L0X)",Laser-based distance ranging sensor for obstacle detection,3
+4,JGB37-520 DC Geared Motor 120 RPM,High-torque DC gear motor with metal gearbox,1
+5,Quadrature Motor Encoder,Feedback sensor to measure motor speed and rotational position,1
+6,Robotics Wheels / Tyres,Rubber wheels for mobile robot chassis,4
+7,BNN055 / BNO085 IMU Sensor,9-axis Inertial Measurement Unit for orientation and motion tracking,1
+8,Mechanical Differential,Gear assembly to distribute torque between wheels while allowing different speeds,1
+9,Drive Shaft / Axle,Metal shafts connecting the motor/differential to the wheels,2
+10,Custom Acrylic Base Chassis,Laser-cut structural mounting plate for robot components,N.A.
+11,Jumper Wires & Power Cables,Electrical wiring for power distribution and signal connections,N.A.
+12,WS2812B NeoPixel Ring 16 LED,Addressable RGB LED indicator ring,1
+13,12V LiPo Battery,Rechargeable Lithium Polymer power source,1
+14,RoboKit 20kg High Torque Servo Motor,Digital servo motor for steering or actuation mechanisms,1
+15,7 Semi Vikram Motor Driver,Dual/multi-channel DC motor driver board,1
