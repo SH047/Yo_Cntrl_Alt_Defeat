@@ -5,11 +5,10 @@
 | | |
 | --- | --- |
 | **Team name** | YO_CNTRL_ALT_DEFEAT |
-| **Team ID** | 1684 |
+| **Team ID** | 1680 |
 | **Team members** | Abhay and Nidhella |
 | **Country / region** | India |
 | **Season** | 2026 - Future Engineers |
-| **Repository** | https://github.com/SH047/Yo_Cntrl_Alt_Defeat |
 
 This repository documents Version 2 of the YO_CNTRL_ALT_DEFEAT autonomous vehicle for WRO Future Engineers. V2 is a rear-wheel-drive vehicle with servo-driven front-wheel steering and a mechanical rear differential. A **single ESP32 DevKit V1** runs every real-time task. It reads three VL53L0X time-of-flight (ToF) sensors (plus an optional rear sensor) through a TCA9548A I2C multiplexer, takes heading from a BNO055 IMU, measures distance from a quadrature encoder on a JGB37-520 geared motor, and drives the steering servo and motor driver. Colour recognition is handled on board by a **HUSKYLENS AI camera**, which reports coloured blocks to the ESP32 over I2C. No separate vision computer is carried on V2.
 
