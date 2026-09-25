@@ -1,23 +1,3 @@
-// ============================================================
-// WRO FE 2026 — OPEN CHALLENGE — v3b (v3 + wall clamp + ToF dropout hold)
-//
-// Your open-challenge code, with four changes (each marked CHANGED):
-//   1. ONE tuning block at the top — everything you may want to
-//      change during practice lives there, nothing else is magic.
-//   2. ENCODER brought in: leg distance, per-leg log, optional
-//      minimum-leg guard, and a second FINISH mode (by distance).
-//      FINISH_MODE = 0 (time, as before) or 1 (encoder distance).
-//      In BOTH modes the log prints time AND distance so you can
-//      compare them before switching.
-//   3. HEADING control is P + D with a measured dt (was P only).
-//   4. ToF sensors run in CONTINUOUS mode; loop() just reads the
-//      latest value instead of blocking ~25 ms per sensor.
-//
-// Nothing about corner decisions, direction lock, crash recovery
-// or the finish run-through has been changed in behaviour — only
-// pulled into functions and parameterised.
-// ============================================================
-
 #include <ESP32Servo.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -75,7 +55,7 @@
 
 // ---------- Corner decision ----------
 #define TURN_THRESHOLD_CM  85.0   // front wall closer than this -> consider turning
-#define SIDE_GAP_CM        50.0   // a side farther than this is "open"
+#define SIDE_GAP_CM        75.0   // a side farther than this is "open"
 #define BLIND_LOCK_CM      40.0   // front closer than this -> turn even if sides unclear
 #define TURN_COOLDOWN_MS   1000   // no new corner within this time of the last
 #define MIN_LEG_MM            0   // CHANGED: no new corner until this many mm
