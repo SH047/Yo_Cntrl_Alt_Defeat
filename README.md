@@ -1,73 +1,112 @@
 # WRO 2026 Future Engineers
 
-## Team YO_ERROR-404 - Version 2
+## Team YO_CNTRL_ALT_DEFEAT - Version 2
 
-This repository documents Version 2 of the YO_ERROR-404 autonomous vehicle for WRO Future Engineers. V2 develops the earlier prototype into a serviceable differential-drive platform with encoder feedback, short-range ToF sensing, a Raspberry Pi vision system and an ESP32-C3 real-time controller.
+| | |
+| --- | --- |
+| **Team name** | YO_CNTRL_ALT_DEFEAT |
+| **Team ID** | 1684 |
+| **Team members** | Abhay and Nidhella |
+| **Country / region** | India |
+| **Season** | 2026 - Future Engineers |
+| **Repository** | https://github.com/SH047/Yo_Cntrl_Alt_Defeat |
+
+This repository documents Version 2 of the YO_CNTRL_ALT_DEFEAT autonomous vehicle for WRO Future Engineers. V2 is a rear-wheel-drive vehicle with servo-driven front-wheel steering and a mechanical rear differential. A **single ESP32 DevKit V1** runs every real-time task. It reads three VL53L0X time-of-flight (ToF) sensors (plus an optional rear sensor) through a TCA9548A I2C multiplexer, takes heading from a BNO055 IMU, measures distance from a quadrature encoder on a JGB37-520 geared motor, and drives the steering servo and motor driver. Colour recognition is handled on board by a **HUSKYLENS AI camera**, which reports coloured blocks to the ESP32 over I2C. No separate vision computer is carried on V2.
 
 ## V1 baseline
 
 <p align="center">
-  <img src="media/images/WRO-FE-BOT.jpg" alt="YO_ERROR-404 Version 1 robot" width="760">
+  <img src="media/images/WRO-FE-BOT.jpg" alt="YO_CNTRL_ALT_DEFEAT Version 1 robot" width="760">
 </p>
 
 <p align="center"><em>Version 1 prototype. This image remains as the visual baseline for the V2 design record.</em></p>
 
-| Area | V2 direction | Current evidence required |
+| Area | V2 implementation | Measured evidence |
 | --- | --- | --- |
-| Mobility | Rear differential with front parallel steering | Roll, steering-sweep and coupling test |
-| Feedback | Encoder, IMU and four ToF channels | Saved calibration values and bench logs |
-| Compute | Raspberry Pi vision + ESP32-C3 real-time control | Stable serial heartbeat and safe stop |
-| Fabrication | STL-only release for printed parts | Chosen STL revision and physical dry-fit |
+| Mobility | Rear-wheel drive through a mechanical differential, servo-driven front-wheel steering | Open round 23/25 successful runs; heading error after each corner ±2-4° |
+| Feedback | Quadrature encoder, BNO055 IMU, 3 × VL53L0X ToF (+1 optional rear) | Encoder calibration ±2 ticks per metre; ToF ±7-10 cm at 2 m |
+| Compute | Single ESP32 DevKit V1 + HUSKYLENS AI camera (on-camera colour recognition) | Start-up device check; pillar pass rate 44/50 |
+| Fabrication | Acrylic chassis plate with 3D-printed PETG mounts from the STL library | Fitted STL set recorded in the engineering documentation (§2.6) |
 
 ## Documentation
 
 | Resource | Purpose |
 | --- | --- |
+| [Engineering documentation](docs/) | Full V2 engineering documentation (PDF): design rationale, pin map, calibration, strategy, test results |
 | [V2 engineering journal](docs/V2_ENGINEERING_JOURNAL.md) | Design rationale, V1-to-V2 change log, risks and validation plan |
+| [`Codes/`](Codes/) | Competition programs for the open and obstacle rounds (ESP32) |
 | [V2 STL library](hardware/STL_V2/) | 31 supplied STL files and fabrication notes |
 | [V2 electronics reference](hardware/ELECTRONICS_V2/) | Component architecture, wiring rules and bench-test worksheet |
-| [Image placeholders](media/images/v2/README.md) | Required robot photographs for the final journal |
-| [`src/`](src/) | Existing ESP32 and Raspberry Pi software snapshot |
+| [Bill of materials](hardware/) | `Yo_Cntrl_Alt_Defeat BOM.csv` |
+| [Robot photographs](media/images/v2/) | V2 robot views and wiring photograph |
+| [Mock run video](media/videos/) | `v2-MockRun-OpenRound.mp4` |
+| [`src/`](src/) | Earlier code snapshots |
 
 ## V2 system architecture
 
 ```mermaid
 flowchart LR
-    Camera[Pi camera] --> Pi[Raspberry Pi\nVision and mission state]
-    Pi <-->|Serial heartbeat and commands| ESP[ESP32-C3\nReal-time controller]
-    ESP --> IMU[IMU\nHeading]
-    ESP --> Mux[TCA9548A\nI2C multiplexer]
-    Mux --> ToF1[Front ToF]
-    Mux --> ToF2[Left ToF]
-    Mux --> ToF3[Right ToF]
-    Mux --> ToF4[Rear ToF]
-    ESP --> Servo[Steering servo]
-    ESP --> Driver[Motor driver]
-    Driver --> Motor[12 V geared motor\nQuadrature encoder]
-    Motor --> ESP
+    Husky["HUSKYLENS AI camera<br/>On-camera colour recognition"] -->|"I2C: colour blocks (x, y, w, h, ID)"| ESP["ESP32 DevKit V1<br/>Sensing, decisions and actuation"]
+    ESP <-->|I2C| Mux["TCA9548A<br/>I2C multiplexer (0x70)"]
+    Mux -->|ch 0| ToF1[Front ToF]
+    Mux -->|ch 1| ToF2[Right ToF]
+    Mux -->|ch 2| ToF3[Left ToF]
+    Mux -->|ch 3| IMU["BNO055 IMU<br/>Absolute heading"]
+    Mux -.->|"ch 6 (optional)"| ToF4[Rear ToF]
+    ESP -->|GPIO 13| Servo["RoboKit 20 kg<br/>steering servo"]
+    ESP -->|"GPIO 26 PWM / 27 DIR"| Driver["7 Semi Vikram<br/>motor driver"]
+    Driver --> Motor["JGB37-520 geared motor<br/>Quadrature encoder"]
+    Motor -->|"Encoder A/B: GPIO 18 / 19"| ESP
+    Start["START button"] -->|GPIO 25| ESP
+    ESP -->|GPIO 14| Ring["NeoPixel ring<br/>Status"]
+    ESP -.->|Bluetooth CSV log| Phone["Phone<br/>YoLabs-FE"]
 ```
 
-The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 reads feedback, drives the steering and motor outputs, reports telemetry and stops propulsion when a safety condition occurs.
+V2 has one programmable controller. The HUSKYLENS is treated as a smart sensor: it captures frames, runs the trained colour-recognition model, and returns a short list of coloured blocks with their position, size and learned ID. The ESP32 requests these blocks every loop, filters them by shape, reads the ToF sensors, IMU and encoder, runs the open-round and obstacle-round state machines, drives the servo and motor, and logs every loop over Bluetooth.
 
 ## V1 and V2 comparison
 
-| Area | V1 prototype | V2 development | V2 advantage to validate |
+| Area | V1 prototype | V2 robot | Why it matters |
 | --- | --- | --- | --- |
-| Drivetrain | BO motor and lightweight rear drive | 12 V geared motor, encoder and rear differential | Measured speed and distance feedback with stronger mechanical support |
-| Distance sensing | Three HC-SR04 ultrasonic sensors | Four ToF channels through TCA9548A | Narrower, repeatable short-range wall measurements |
-| Heading and distance control | Time-based corrections with basic IMU feedback | Encoder, IMU and ToF feedback used together | Corrections can use measured error instead of timing alone |
-| Power architecture | General 9 V supply path | Dedicated motor, servo, logic and sensor domains | Better isolation from motor and servo noise |
-| Mechanical platform | Prototype steering chassis | Polycarbonate chassis with PETG mounts and bearing supports | Improved alignment and easier component replacement |
-| Compute split | Raspberry Pi and ESP32 prototype control | Explicit Raspberry Pi mission layer and ESP32 safety/control layer | Cleaner separation of vision work from real-time actuation |
+| Vision | Separate vision computer + camera with OpenCV, commands sent over UART | HUSKYLENS AI camera on the ESP32 I2C bus | One controller owns the whole decision; no serial link to fail; colour model trained on the field |
+| Distance sensing | Three HC-SR04 ultrasonic sensors, 5 V ECHO dividers | 3 × VL53L0X ToF (+ optional rear) via TCA9548A | Narrow beam, 3.3 V native, continuous ranging, no level shifting |
+| Drive | BO motor, time-based distance | JGB37-520 geared motor + quadrature encoder, rear differential | Distance in millimetres; stall detection; smoother cornering |
+| Heading | Basic / none | BNO055 absolute heading with PD control | Straight legs and exact 90° corners |
+| Power | 9 V supply, one buck converter | 12 V LiPo, separate motor, servo and logic branches | Motor and servo surges kept off the logic rail |
+| Run feedback | USB serial only | Bluetooth CSV log ("YoLabs-FE") + NeoPixel status ring | Every practice run produces data for tuning |
+| Mechanical platform | Prototype steering chassis | Acrylic chassis plate with 3D-printed PETG mounts and bearing supports | Improved alignment and easier component replacement |
 
 ## Advantages of V2
 
-1. The encoder and IMU provide a measurable calibration path for straight runs, turns and speed control.
-2. Four ToF sensor positions can provide front, side and rear distance evidence when their mounts and offsets are validated.
-3. The differential drivetrain and reinforced mounts are designed for better wheel alignment and serviceability.
-4. Dedicated power domains reduce the chance that motor or steering load interrupts the Raspberry Pi or sensor bus.
-5. The V2 journal, STL library and image plan make the build easier to inspect, reproduce and improve between test sessions.
-6. The state-flow diagrams give each team member a shared view of startup, sensing, control, safety stop and validation.
+1. The encoder and BNO055 IMU make every manoeuvre distance- and heading-based, so battery voltage no longer changes where the robot turns.
+2. Narrow-beam ToF sensors at the front, left and right (plus an optional rear sensor) measure the wall they point at, not the nearest object in a wide acoustic cone.
+3. The rear differential lets each rear wheel turn at its own speed in corners, reducing tyre scrub and heading disturbance with only one motor, one driver and one encoder.
+4. Separate motor, servo and logic power branches stop motor or steering surges from browning out the ESP32 or the HUSKYLENS.
+5. Moving colour recognition into the HUSKYLENS removes the second computer, its boot sequence and the serial link, so there are fewer failure points at the start line.
+6. Colours are learned on the actual field with a button press, so re-training under venue lighting takes minutes.
+7. Every loop is logged as a CSV line over Bluetooth, so each practice run leaves data for tuning.
+
+## Hardware list
+
+| Item | Qty | Role in the robot |
+| --- | --- | --- |
+| HUSKYLENS AI camera | 1 | Colour recognition of red / green traffic signs and blue / orange corner lines |
+| ESP32 DevKit V1 | 1 | Single real-time controller; Bluetooth logging |
+| VL53L0X time-of-flight sensor | 3 (+1) | Front, right and left distance; optional rear sensor for corner reverse |
+| TCA9548A I2C multiplexer | 1 | Gives each same-address VL53L0X (and the IMU) its own channel |
+| BNO055 9-axis IMU | 1 | Absolute heading for straight-line and corner control |
+| JGB37-520 DC geared motor (120 RPM) | 1 | Rear-wheel propulsion |
+| Quadrature motor encoder | 1 | Distance travelled and stall detection |
+| Mechanical differential + drive shafts | 1 + 2 | Splits drive to the rear wheels while allowing different speeds in turns |
+| RoboKit 20 kg high-torque servo | 1 | Front-wheel steering |
+| 7 Semi Vikram motor driver | 1 | PWM speed and direction control of the drive motor |
+| 12 V LiPo battery | 1 | Primary energy source (XT60 connector) |
+| Voltage regulators (5 V logic, servo) | 2 | Separate logic and servo supplies |
+| WS2812B NeoPixel ring, 16 LED | 1 | Run-state and fault indication |
+| START push-button, power switch | 1 + 1 | Run start / stop; master isolation |
+| Wheels / tyres | 4 | Traction (large rear, small front) |
+| Acrylic chassis plate + 3D-printed mounts | 1 set | Structure |
+| Jumper wires, power cables, perfboard | as required | Interconnection |
 
 ## Image record
 > **V2 front-left view**<br>
@@ -89,41 +128,102 @@ The Raspberry Pi makes high-level vision and navigation decisions. The ESP32-C3 
 
 ```mermaid
 flowchart TD
-    Battery[12 V battery] --> Fuse[Main fuse and power switch]
-    Fuse --> MotorRail[Motor rail]
+    Battery["12 V LiPo (XT60)"] --> Fuse[Main fuse and power switch]
+    Fuse --> MotorRail[Motor branch]
     Fuse --> ServoReg[Servo regulator]
     Fuse --> LogicReg[5 V logic regulator]
-    LogicReg --> Pi[Raspberry Pi]
-    LogicReg --> ESP[ESP32-C3]
-    ESP --> SensorRail[3.3 V sensor rail]
+    LogicReg --> ESP["ESP32 DevKit V1 (VIN)"]
+    LogicReg --> Husky[HUSKYLENS]
+    LogicReg --> Ring[NeoPixel ring]
+    ESP --> SensorRail["3.3 V from ESP32 regulator"]
     SensorRail --> Mux[TCA9548A]
-    SensorRail --> IMU[IMU]
-    SensorRail --> ToF[Four ToF sensors]
-    MotorRail --> Driver[Motor driver]
-    Driver --> Motor[Geared motor]
-    ServoReg --> Servo[Steering servo]
-    Ground[Planned common ground] --- MotorRail
+    SensorRail --> IMU[BNO055]
+    SensorRail --> ToF["VL53L0X ToF × 3 (+1)"]
+    MotorRail --> Driver[7 Semi Vikram motor driver]
+    Driver --> Motor[JGB37-520 geared motor]
+    ServoReg --> Servo[20 kg steering servo]
+    Ground[Single common ground node] --- MotorRail
     Ground --- ServoReg
     Ground --- LogicReg
 ```
 
-Before integration, measure motor current under free-run and loaded conditions, check the logic rail under steering load, and confirm I2C readings remain stable while PWM is active.
+The servo is never powered from the ESP32 or from the 5 V logic rail, because a 20 kg servo stalling at full lock can pull enough current to brown out the ESP32 and reset the run. Battery, motor driver, both regulators, ESP32, servo, HUSKYLENS and all I2C sensors share one ground node. Before integration, verify polarity, measure each regulator output with no load, and confirm that every I2C device answers while PWM is active.
+
+## ESP32 pin assignment
+
+| Component | Connection | ESP32 pin |
+| --- | --- | --- |
+| Motor driver IN1 | Speed / PWM | GPIO 26 |
+| Motor driver IN2 | Direction | GPIO 27 |
+| Steering servo | Signal (50 Hz PWM, 500-2400 µs) | GPIO 13 |
+| Encoder channel A | Interrupt, rising edge | GPIO 18 |
+| Encoder channel B | Direction input | GPIO 19 |
+| START button | Input, internal pull-up, active low | GPIO 25 |
+| NeoPixel ring | Data in | GPIO 14 |
+| I2C SDA | HUSKYLENS + TCA9548A | GPIO 21 (default) |
+| I2C SCL | HUSKYLENS + TCA9548A | GPIO 22 (default) |
+| Common ground | GND | ESP32 GND |
+
+SDA / SCL are not set explicitly in the code (`Wire.begin()`), so the DevKit V1 defaults GPIO 21 / 22 apply. The I2C bus runs at 100 kHz.
+
+**TCA9548A channels:** ch 0 → front ToF, ch 1 → right ToF, ch 2 → left ToF, ch 3 → BNO055, ch 6 → rear ToF (optional). The HUSKYLENS sits on the main bus, which stays connected whatever channel is selected.
+
+## HUSKYLENS colour IDs
+
+| ID | Colour | Field element | Used for |
+| --- | --- | --- | --- |
+| 1 | Blue | Corner line | Corner confirmation (line gate) |
+| 2 | Orange | Corner line | Corner confirmation (line gate) |
+| 3 | Magenta | Parking-lot marker | Logged only |
+| 4 | Red | Traffic sign | Pass on the right |
+| 5 | Green | Traffic sign | Pass on the left |
+
+Learn each colour ID on the actual field under the venue lighting before running.
+
+## Program set
+
+Each round has its own program in [`Codes/`](Codes/), so a change for one round cannot break the other. All tuning constants are `#define` values at the top of each program.
+
+| File | Round | Status | Summary |
+| --- | --- | --- | --- |
+| `01_Complete_Open_Round_CW_CCW.ino` | Open | Competition | Heading PD + wall centring, ToF corner detection, auto CW / CCW lock, 12 turns then finish |
+| `03_Obstacle_Round_With_Parking_Out_Corrected.ino` | Obstacle | Competition | Parking exit, pillar bulges, gated precision corners, optional rear-ToF reverse |
+| `02_Obstacle_Round_No_Parking_Slow_Accurate.ino` | Obstacle | Fallback | Same strategy at PWM 70, no parking exit |
+
+To flash a program, open the `.ino` file in the Arduino IDE with ESP32 board support, select the ESP32 DevKit V1 board, install the libraries listed in the program header (including the DFRobot HUSKYLENS library), and upload over USB.
 
 ## Control flow
 
 ```mermaid
 flowchart TD
-    Start[Power on] --> Check[Check battery, serial link and sensor health]
-    Check -->|Fault| Stop[Safe stop and fault report]
-    Check -->|Ready| Wait[Wait for start command]
-    Wait --> Sense[Read camera, ToF, IMU and encoder]
-    Sense --> Decide[Mission state and steering target]
-    Decide --> Actuate[ESP32 sets steering and motor output]
-    Actuate --> Log[Send telemetry and record run data]
-    Log --> Complete{Mission complete?}
+    Start[Power on] --> Check["Start-up device check:<br/>ToF channels, BNO055, HUSKYLENS"]
+    Check -->|"Sensor missing"| Fault["Flash ring yellow, log channel,<br/>refuse to start"]
+    Check -->|"HUSKYLENS not found"| Retry[Retry every 500 ms] --> Check
+    Check -->|"Ready (ring warm white)"| Wait[Wait for START button]
+    Wait --> Sense["Read HUSKYLENS blocks, ToF,<br/>BNO055 heading and encoder"]
+    Sense --> Decide["Phase state machine:<br/>steering and speed target"]
+    Decide --> Actuate[ESP32 sets servo angle and motor PWM]
+    Actuate --> Log[Write CSV line over Bluetooth]
+    Log --> Complete{"12 corners done<br/>and finish section driven?"}
     Complete -->|No| Sense
-    Complete -->|Yes| Stop
+    Complete -->|Yes| Stop[Stop]
+    Sense -->|"Obstacle round: front ToF ≤ 12 cm<br/>with corner gates failing"| Stop
 ```
+
+The camera decides **what** to do (which side to pass a pillar, whether a corner line is present). The ToF sensors and encoder decide **when** and **whether it is safe**: a camera detection cannot start a corner without the distance, side and front gates, and the front ToF can stop the run whatever the camera sees.
+
+## Measured test results
+
+| Test | Method | Metric | Result |
+| --- | --- | --- | --- |
+| ToF accuracy | Flat target at a known distance of 2 m | Error in cm per channel | ±7-10 cm |
+| Encoder calibration | Push 1 m along a straight edge | Ticks per metre | ±2 |
+| Straight-line hold | Drive 2 m on heading PD | Lateral drift (°) | 5-10° |
+| Corner accuracy | 12 corners in the open round | Heading error after each turn (°) | ±2-4° |
+| Open-round reliability | Repeated full runs, CW and CCW | Successful runs / attempts | 23/25 |
+| Pillar pass rate | Red and green pillars at all positions | Correct-side passes / attempts | 44/50 |
+| Obstacle-round reliability | Full runs with random layouts | Successful runs / attempts | 12/20 |
+| Parking exit | Repeated exits left and right | Clean exits / attempts | 14/15 |
 
 ## Build and validation flow
 
@@ -132,7 +232,7 @@ flowchart LR
     A[Select physical components] --> B[Dry-fit STL parts]
     B --> C[Mechanical roll and steering tests]
     C --> D[Power and motor-current tests]
-    D --> E[Sensor and serial bench tests]
+    D --> E[Sensor, camera and Bluetooth-log bench tests]
     E --> F[Short straight and turn tests]
     F --> G[Full-course practice runs]
     G --> H[Freeze working calibration and backup]
@@ -141,16 +241,20 @@ flowchart LR
 ## Repository structure
 
 ```text
-docs/                 Engineering journal and V2 rationale
-hardware/ELECTRONICS_V2/  Component reference and electrical validation plan
-hardware/STL_V2/      STL-only fabrication library
-media/images/v2/      Reserved locations for final robot photographs
-src/                  Existing ESP32 and Raspberry Pi code snapshot
+README.md                         Main documentation
+Codes/                            Competition programs (01, 02, 03) for the ESP32
+docs/                             Engineering documentation (PDF) and V2 engineering journal
+hardware/ELECTRONICS_V2/          Electronics reference and electrical validation plan
+hardware/STL_V2/                  Printable STL parts + README
+hardware/Yo_Cntrl_Alt_Defeat BOM.csv  Bill of materials
+media/images/v2/                  Robot photographs
+media/videos/                     v2-MockRun-OpenRound.mp4
+src/                              Earlier code snapshots
 ```
 
 ## Build and bring-up procedure
 
-Following this order means a fault is found while only one subsystem is connected.
+Following this order means a fault is found while only one subsystem is connected. Section numbers (§) refer to the [engineering documentation](docs/).
 
 1. Assemble the chassis, steering linkage, differential and motor mount; check the wheels turn freely and the steering does not bind at either lock.
 2. Wire the common ground first, before any supply rail.
@@ -160,26 +264,26 @@ Following this order means a fault is found while only one subsystem is connecte
 6. Calibrate ToF offsets, encoder ticks per metre and servo centre (§3.9).
 7. Learn the colour IDs on the HUSKYLENS on the field (§3.13).
 8. With the wheels lifted, check motor direction, encoder sign and servo direction.
-9. Run program 01_Complete_Open_Round_CW_CCW.ino on the field at reduced speed, then at full speed, both directions.
-10. Run program 03_Obstacle_Round_With_Parking_Out_Corrected.ino, first without pillars, then with pillars; record the metrics in and log changes.
-
+9. Run program `01_Complete_Open_Round_CW_CCW.ino` on the field at reduced speed, then at full speed, both directions.
+10. Run program `03_Obstacle_Round_With_Parking_Out_Corrected.ino`, first without pillars, then with pillars; record the metrics from the Bluetooth log and note any changes made.
 
 ## Before a field run
 
-1. Confirm the selected STL parts match the actual motor, servo, bearings, differential and sensor boards.
+1. Confirm the fitted STL parts match the actual motor, servo, bearings, differential and sensor boards.
 2. Check that the steering has no mechanical bind and the wheels move freely.
-3. Confirm battery polarity, fuse, common ground and motor-driver current capacity.
-4. Run the sensor health check and verify the serial heartbeat.
-5. Load the saved calibration values and make a backup before changing gains.
-
-
+3. Check the LiPo voltage, battery polarity (XT60), fuse, common ground and motor-driver current capacity.
+4. Re-learn the HUSKYLENS colour IDs under the venue lighting.
+5. Power on and confirm the start-up device check passes (ring turns warm white) and the Bluetooth log reaches the phone.
+6. Load the saved calibration values and make a backup before changing gains.
 
 ## Security and configuration
 
 Keep GitHub tokens, Wi-Fi passwords and event credentials out of tracked files. Use a local ignored configuration file and commit only a placeholder example.
 
 <details>
-<summary>V1 prototype reference</summary>
+<summary>V1 prototype reference (historical - superseded by V2 above)</summary>
+
+> This section describes the earlier V1 robot (Raspberry Pi vision, HC-SR04 ultrasonic sensors, BO motor). It is kept for the design record only and does not describe the V2 hardware.
 
 # Obstacle-Avoiding Robot
 
