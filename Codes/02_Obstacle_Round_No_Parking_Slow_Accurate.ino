@@ -173,7 +173,9 @@ void setup() {
   if (!bno.begin()) { logLine("BNO055 missing"); while (1) delay(1000); }
   delay(100); bno.setExtCrystalUse(true);
 
-  logLine(String("STEP 5 v8 ready: linegate=") + USE_LINE_GATE + "  legmin=") + (USE_BULGE_LEGS ? String(LEG_MM_0) + "/" + LEG_MM_1 + "/" + LEG_MM_2 + " by bulges" : String(LEG_MIN_MM)) + ", first " + FIRST_LEG_MIN_MM + ", corners=" + CORNERS_TO_RUN + "+" + FINISH_MM + "mm" + " rear=" + REAR_SET_CM + "cm" + " trig F<=" + CORNER_TRIGGER_CM + " set=" + FRONT_SET_CM + " rev=" + REVERSE_MM + " theta C/F/N=" + THETA_CENTER + "/" + THETA_FAR + "/" + THETA_NEAR + ". Press START."); logFlush();
+logLine(String("STEP 5 v8 ready: linegate=") + USE_LINE_GATE + "  legmin=" + (USE_BULGE_LEGS ? String(LEG_MM_0) + "/" + LEG_MM_1 + "/" + LEG_MM_2 + " by bulges" : String(LEG_MIN_MM)) + ", first " + FIRST_LEG_MIN_MM + ", corners=" + CORNERS_TO_RUN + "+" + FINISH_MM + "mm" + " rear=" + REAR_SET_CM + "cm" + " trig F<=" + CORNER_TRIGGER_CM + " set=" + FRONT_SET_CM + " rev=" + REVERSE_MM + " theta C/F/N=" + THETA_CENTER + "/" + THETA_FAR + "/" + THETA_NEAR + ". Press START."); 
+logFlush();
+
   while (digitalRead(START_BTN_PIN) == HIGH) delay(50);
   delay(50); while (digitalRead(START_BTN_PIN) == LOW) delay(10);
   laneHeading = readHeading(); encoderTicks = 0; runStart = millis(); legStartTicks = 0; fwdLastTicks = 0;
