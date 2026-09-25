@@ -148,6 +148,22 @@ media/images/v2/      Reserved locations for final robot photographs
 src/                  Existing ESP32 and Raspberry Pi code snapshot
 ```
 
+## Build and bring-up procedure
+
+Following this order means a fault is found while only one subsystem is connected.
+
+1. Assemble the chassis, steering linkage, differential and motor mount; check the wheels turn freely and the steering does not bind at either lock.
+2. Wire the common ground first, before any supply rail.
+3. Power the regulators alone from the battery and set / measure each output before connecting any load.
+4. Connect the ESP32 by USB only; flash a test and confirm Bluetooth logging reaches the phone.
+5. Connect the I2C bus: HUSKYLENS, TCA9548A, ToF sensors and BNO055. Flash a program and confirm the start-up check passes (ring turns warm white).
+6. Calibrate ToF offsets, encoder ticks per metre and servo centre (§3.9).
+7. Learn the colour IDs on the HUSKYLENS on the field (§3.13).
+8. With the wheels lifted, check motor direction, encoder sign and servo direction.
+9. Run program 01_Complete_Open_Round_CW_CCW.ino on the field at reduced speed, then at full speed, both directions.
+10. Run program 03_Obstacle_Round_With_Parking_Out_Corrected.ino, first without pillars, then with pillars; record the metrics in and log changes.
+
+
 ## Before a field run
 
 1. Confirm the selected STL parts match the actual motor, servo, bearings, differential and sensor boards.
@@ -155,6 +171,8 @@ src/                  Existing ESP32 and Raspberry Pi code snapshot
 3. Confirm battery polarity, fuse, common ground and motor-driver current capacity.
 4. Run the sensor health check and verify the serial heartbeat.
 5. Load the saved calibration values and make a backup before changing gains.
+
+
 
 ## Security and configuration
 
